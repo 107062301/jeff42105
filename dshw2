@@ -1,0 +1,360 @@
+#include <string>
+#include <iostream>
+#include <cstdio>
+#include <stdio.h>      /* printf, scanf, NULL */
+#include <stdlib.h>
+using namespace std;
+
+class Node
+{
+public:
+    Node(){
+        this->next = NULL;
+    }
+    Node(const int element , Node *next){
+        this->data = element;
+        this->next = next;
+    }
+    ~Node(){
+        this->next = NULL;
+    }
+    friend class Chain;
+    Node *next;
+    int data;
+};
+
+
+class Chain
+{
+public:
+
+    Chain(){
+        head = NULL;
+    }
+    Chain(Node *head){
+        this->head = head;
+    }
+    void InsertBack(int data);
+    void InsertFront(int data);
+    void InsertAfter(int data,int data_ref);
+    void InsertBefore(int data,int data_ref);
+    void Delete(int data);
+    void DeleteFront();
+    void DeleteBack();
+    void Reverse();
+    void Rotate(int k);
+    void Swap(int k, int j);
+
+
+    bool IsEmpty(){
+        return this->head == NULL;
+    }
+
+    std::string PrintChain(){
+        Node *cur = this->head;
+        std::string result = "";
+        if(cur == NULL){
+            result = "Empty";
+            return result;
+        }
+        while(cur != NULL){
+
+            int num = cur->data;
+            std::string num_str = std::to_string(num);
+            result.append(num_str);
+            if(cur -> next){
+                result.append("->");
+            }
+            cur = cur->next;
+        }
+        return result;
+    }
+
+
+    Node *head;
+};
+
+// void Chain::InsertBack(int data){
+
+// }
+// ..... implement the operations
+
+
+int main()
+{
+
+    Chain inst = *(new Chain());
+
+    string command;
+    int data , data_ref;
+
+    while(cin>>command){
+        if(command == "InsertBack"){
+            cin>>data;
+            inst.InsertBack(data);
+        }else if(command == "InsertFront"){
+            cin>>data;
+            inst.InsertFront(data);
+        }else if(command == "InsertAfter"){
+            cin>>data>>data_ref;
+            inst.InsertAfter(data , data_ref);
+        }else if(command == "InsertBefore"){
+            cin>>data>>data_ref;
+            inst.InsertBefore(data , data_ref);
+        }else if(command == "Delete"){
+            cin>>data;
+            inst.Delete(data);
+        }else if(command == "DeleteFront"){
+            inst.DeleteFront();
+
+        }else if(command == "DeleteBack"){
+            inst.DeleteBack();
+
+        }else if(command == "Reverse"){
+            inst.Reverse();
+        }else if(command == "Rotate"){
+            int k;
+            cin>>k;
+            inst.Rotate(k);
+        }else if(command == "Swap"){
+            int j,k;
+            cin>>j>>k;
+            inst.Swap(j,k);
+        }
+        else if(command == "PrintChain"){
+
+            cout<<inst.PrintChain()<<endl;
+        }
+    }
+
+    return 0;
+}
+
+
+
+
+void Chain::InsertBack(int data){
+	Node*newnode,*temp = head;
+    newnode = new Node(data,NULL);
+	if(head == NULL){
+
+		head = newnode;
+	}
+	else{
+		while(temp->next != NULL){
+			temp = temp->next;
+		}
+
+		temp->next = newnode;
+	}
+
+}
+void Chain::InsertFront(int data){
+	Node*newnode;
+    newnode = new Node(data,head);
+    head = newnode;
+
+}
+void Chain::InsertAfter(int data,int data_ref){
+	Node* newnode,*temp = head;
+	newnode = new Node(data,NULL);
+    if(head == NULL){
+        return;
+	}
+	else{
+        while(temp->data != data_ref){
+
+            temp = temp->next;
+             if(temp == NULL){
+                return;
+            }
+        }
+        newnode->next = temp->next;
+        temp->next = newnode;
+
+	}
+
+}
+void Chain::InsertBefore(int data,int data_ref){
+	Node*newnode,*temp = head,*prev = NULL;
+	if(head == NULL){
+        return;
+	}
+    else{
+        while(temp->data != data_ref){
+            if(temp->next->data == data_ref){
+                prev = temp;
+            }
+
+            temp = temp->next;
+            if(temp == NULL){
+            return;
+            }
+        }
+        if(prev == NULL){
+            newnode = new Node(data,temp);
+            head = newnode;
+        }
+        else{
+            newnode = new Node(data,temp);
+            prev->next = newnode;
+        }
+
+    }
+}
+void Chain::Delete(int data){
+	Node*temp = head,*prev=NULL;
+	if(head == NULL){
+        return;
+	}
+	else if(temp -> data == data){
+        head = temp->next;
+        delete(temp);
+	}
+	else{
+        while(temp->data != data && temp != NULL){
+            if(temp->next->data == data){
+                prev = temp;
+            }
+            temp = temp->next;
+        }
+
+        if(temp == NULL){
+            return;
+        }
+        if(prev == NULL){
+            head = temp->next;
+            delete(temp);
+            temp = NULL;
+        }
+        else{
+            prev->next = temp->next;
+            delete(temp);
+            temp = NULL;
+
+        }
+
+	}
+
+}
+void Chain::DeleteFront(){
+	Node*temp = head,*temp2;
+	if(head == NULL){
+		return;
+	}
+
+	head = temp->next;
+	temp -> next = NULL;
+
+	delete(temp);
+}
+void Chain::DeleteBack(){
+
+	Node*temp = head,*prev = NULL;
+	if(head == NULL){
+		return;
+	}
+	while(temp->next != NULL ){
+        if(temp->next->next == NULL){
+            prev = temp;
+        }
+		temp = temp->next;
+	}
+	if(prev == NULL){
+        temp = head;
+        delete(temp);
+	}
+	else{
+        prev->next = NULL;
+        delete(temp);
+	}
+
+}
+void Chain::Reverse(){
+	Node*temp = head,*prev = NULL,*next,*cur = head;
+
+	while(cur !=  NULL){
+		next = cur->next;
+		cur->next = prev;
+		prev = cur;
+		cur = next;
+	}
+    head = prev;
+
+}
+void Chain::Rotate(int k){
+
+	int number = 0,i;
+	Node*temp = head,*tail;
+	while(temp->next!= NULL){
+		number++;
+		temp = temp->next;
+	}
+	number++;
+	//printf("%d",number);
+	tail = temp;
+	tail -> next = head;
+	if(k >= number){
+		k = k%number;
+	}
+
+	temp = head;
+	i = number - k;
+	while(i != 1 && i != 0){
+		temp = temp->next;
+		i--;
+	}
+
+	head = temp->next ;
+    temp -> next = NULL;
+
+}
+void Chain::Swap(int k, int j){   /////TLE
+
+	int number = 0,i;
+	Node*temp = head,*tj = head,*tk = head,*prev_k = NULL,*prev_j = NULL,*temp3,*prev,*tp,*tp2;
+
+	 while (tj && tj->data != j)
+  {
+      prev_j = tj;
+      tj = tj->next;
+  }
+
+  while (tk && tk->data != k)
+  {
+      prev_k = tk;
+      tk = tk->next;
+  }
+	if(tj!=NULL&&tk!=NULL){
+       // printf("gooood\n");
+
+
+            if(prev_k != NULL){
+
+                prev_k->next = tj;
+
+            }
+            else{
+                head = tj;
+            }
+            if(prev_j != NULL){
+
+                prev_j->next = tk;
+            }
+            else{
+                head = tk;
+            }
+
+
+            temp3 = tk->next;
+            tk->next = tj->next;
+            tj->next = temp3;
+
+	}
+
+    else{
+       return;
+    }
+
+
+}
