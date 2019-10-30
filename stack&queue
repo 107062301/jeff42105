@@ -1,0 +1,382 @@
+#include <iostream>
+#include <string>
+#include <algorithm>
+#include <string.h>
+using namespace std;
+
+#define Max  2510
+
+class Stack{
+	int top;
+	
+	public:
+	
+	char stack[Max];	
+	Stack(){
+		top = -1;
+	}
+	void push(char x);
+	char pop();
+	bool isempty(); 
+	char search ();
+};
+
+
+void Stack::push(char x){
+	if(top < Max){
+		top++;
+		stack[top] = x;
+	}
+	else{
+		cout << "overflow" << "\n";
+	}
+} 
+
+
+char Stack::pop(){
+	
+	char t;
+	if(top >= 0){
+		
+		t = stack[top];	
+		stack[top] = NULL; 
+		top--;
+		return t;
+	} 
+	
+	else{
+	//	cout << "empty" << "\n";	
+	}
+	
+}
+
+char Stack::search(){
+	
+	if(top < 0){	
+	//	cout << "empty" << "\n";
+	}
+	else if(top >= Max) {
+		cout << "overflow" << "\n";
+	}
+	else{
+		return stack[top];
+	}
+	
+}
+
+bool Stack::isempty(){
+	
+	return (top < 0);
+}
+
+class SStack{
+	int top;
+	
+	public:
+	
+	long long int stack[Max];	
+	SStack(){
+		top = -1;
+	}
+	bool isempty(); 
+	void push(long long int x);
+	long long int pop();
+};
+
+
+void SStack::push(long long int x){
+	if(top < Max){
+		top++;
+		stack[top] = x;
+	}
+	else{
+		cout << "overflow" << "\n";
+	}
+} 
+
+
+long long int SStack::pop(){
+	
+	long long int t;
+	if(top >= 0){
+		
+		t = stack[top];	
+		stack[top] = NULL; 
+		top--;
+		return t;
+	} 
+	
+	else{
+	//	cout << "empty" << "\n";	
+	}
+	
+}
+
+bool SStack::isempty(){
+	
+	return (top < 0);
+}
+
+void function(string str,char f[2500]);
+
+
+int main(){
+	
+	
+	int ans,i,j;
+	long long int op1,op2,sum = 0;
+	string str;
+	char t[2510],f[2510];
+	Stack s;
+	SStack tmp;
+	
+	while(cin >> str){
+		function(str,f);
+		
+		j = 0;
+		
+		reverse(str.begin(),str.end()); 
+		
+		for(i = 0 ; i < str.size() ; i++){
+			if(isdigit(str[i])){
+				t[j]  = str[i] ;
+				j++;
+			}
+			else{
+				if(str[i] == ')'){
+				//cout << "asa";
+					s.push(')');
+				}
+				else if(str[i] == '('){
+				//	cout << "jjj";
+					while(s.search() != ')' ){
+						t[j]  = s.pop() ;
+						j++;
+					}
+					s.pop();
+				}
+				else if(str[i] == '+'){
+					if(s.isempty()){
+						s.push('+');
+					}
+					else{
+						if(s.search() == '*' || s.search() == '/' ){
+							while(s.search() == '*' || s.search() == '/' ){
+								t[j]  = s.pop() ;
+								j++;
+							}
+							s.push('+');
+						}
+						else{
+							s.push('+');
+						}
+					}
+				}
+				else if(str[i] == '-'){
+					if(s.isempty()){
+						s.push('-');
+					}
+					else{
+						if(s.search() == '*' || s.search() == '/' ){
+							while(s.search() == '*' || s.search() == '/' ){
+								t[j]  = s.pop() ;
+								j++;
+							}
+							s.push('-');
+						}
+						else{
+							s.push('-');
+						}
+					}	
+				}
+				else if(str[i] == '*'){
+				
+					s.push('*');
+				}
+				else if(str[i] == '/'){
+				
+					s.push('/');
+				
+				}
+			
+			}
+			if(i == str.size() - 1){
+				while(!s.isempty()){
+					t[j] = s.pop() ;
+					j++;
+				}
+			}
+		}
+		for(i = strlen(t)-1 ; i >= 0; i-- ){
+			cout << t[i];	
+		//cout << f[i];	
+		}
+
+		cout << "\n";
+		
+		for(i = 0 ; i < strlen(f); i++ ){
+			if(isdigit(f[i])){
+				ans = f[i]-'0';
+				tmp.push(ans);
+			}
+			else if(f[i] == '+'){
+				op1 = tmp.pop();
+				op2 = tmp.pop();
+				sum = op1+op2;
+				tmp.push(sum);
+			}
+			else if(f[i] == '-'){
+				op1 = tmp.pop();
+				op2 = tmp.pop();
+				sum = op2-op1;
+				tmp.push(sum);
+			
+			}
+			else if(f[i] == '*'){
+				op1 = tmp.pop();
+				op2 = tmp.pop();
+				sum = op1*op2;
+				tmp.push(sum);
+			
+			}
+				else if(f[i] == '/'){
+				op1 = tmp.pop();
+				op2 = tmp.pop();
+				sum = op2/op1;
+				tmp.push(sum);
+				}
+		}
+		cout << tmp.pop() <<"\n";
+	
+
+		for(i = strlen(t)-1 ; i >= 0; i-- ){
+			t[i] = 0X00;
+			f[i] = 0x00;		
+		}
+	//	cout << str;
+	}
+
+
+}
+
+
+void function(string str,char t[2510]){
+	int i;
+	int j=0;
+	char c;
+	Stack s;
+	for(i = 0 ; i < str.size() ; i++){
+		if(isdigit(str[i])){
+			cout << str[i] ;
+			t[j]  = str[i] ;
+			j++;
+		}
+		else{
+			if(str[i] == '('){
+				//cout << "asa";
+				s.push('(');
+			}
+			else if(str[i] == ')'){
+				//	cout << "jjj";
+				while(s.search() != '(' ){
+					c = s.pop();
+					cout << c ;
+					t[j]  = c ;
+					j++;
+				}
+				s.pop();
+			}
+			else if(str[i] == '+'){
+				if(s.isempty()){
+					s.push('+');
+				}
+				else{
+					if(s.search() == '*' || s.search() == '/' || s.search() == '-' || s.search() == '+'){
+						while(s.search() == '*' || s.search() == '/' || s.search() == '-' || s.search() == '+'){
+							c = s.pop();
+							cout << c ;
+							t[j]  = c ;
+							j++;
+						}
+						s.push('+');
+					}
+					else{
+						s.push('+');
+					}
+				}
+			}
+			else if(str[i] == '-'){
+				if(s.isempty()){
+					s.push('-');
+				}
+				else{
+					if(s.search() == '*' || s.search() == '/'|| s.search() == '-' || s.search() == '+' ){
+						while(s.search() == '*' || s.search() == '/'|| s.search() == '-' || s.search() == '+'){
+
+							c = s.pop();
+							cout << c ;
+							t[j]  = c ;
+							j++;
+						}
+						s.push('-');
+					}
+					else{
+						s.push('-');
+					}
+				}
+			}
+			else if(str[i] == '*'){
+				if(s.isempty()){
+					//	cout << "y";
+					s.push('*');
+				}
+				else{
+					if(s.search() == '*' || s.search() == '/'  ){
+						c = s.pop();
+						s.push('*');
+						cout << c ;
+						t[j]  = c ;
+						j++;
+					}
+					else{
+						s.push('*');
+					}
+				}
+			}
+			else if(str[i] == '/'){
+				if(s.isempty()){
+					s.push('/');
+				}
+				else{
+					if(s.search() == '*' || s.search() == '/'  ){
+						c = s.pop();
+						s.push('/');
+						cout << c ;
+						t[j]  = c ;
+						j++;
+					}
+					else{
+						s.push('/');
+					}
+				}
+					
+			}
+			
+		}
+		if(i == str.size() - 1){
+			while(!s.isempty()){
+				c = s.pop();
+				cout << c ;
+				t[j]  = c ;
+				j++;
+			}
+		}
+	}
+		cout <<"\n";		
+}
+
+
+
+
+
+
