@@ -376,7 +376,76 @@ void function(string str,char t[2510]){
 }
 
 
+#include <bits/stdc++.h>  
+#include <iostream> 
+using namespace std; 
+  
 
+class QNode { 
+public: 
+    int key; 
+    int cha;
+    QNode* next; 
+}; 
+  
+
+class Queue { 
+public: 
+    QNode *front, *rear; 
+}; 
+ 
+QNode* newNode(int cha,int k) 
+{ 
+    QNode* temp = new QNode(); 
+    temp->cha = cha;
+    temp->key = k; 
+    temp->next = NULL; 
+    return temp; 
+} 
+  
+
+Queue* createQueue() 
+{ 
+    Queue* q = new Queue(); 
+    q->front = q->rear = NULL; 
+    return q; 
+} 
+  
+
+void enQueue(Queue* q, int cha, int k) 
+{ 
+    
+    QNode* temp = newNode(cha,k); 
+  
+   
+    if (q->rear == NULL) { 
+        q->front = q->rear = temp; 
+        return; 
+    } 
+  
+    
+    q->rear->next = temp; 
+    q->rear = temp; 
+} 
+  
+
+QNode* deQueue(Queue* q) 
+{ 
+   
+    if (q->front == NULL) 
+        return NULL; 
+  
+    
+    QNode* temp = q->front; 
+     
+    q->front = q->front->next; 
+  
+    
+    if (q->front == NULL) 
+        q->rear = NULL; 
+    return temp; 
+    delete(temp); 
+} 
 
 
 
