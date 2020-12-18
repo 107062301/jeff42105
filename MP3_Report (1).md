@@ -15,7 +15,7 @@
 
 用state disgram幫助理解:
 
-![](https://github.com/107062301/jeff42105/blob/master/osmp3.jpg?raw=true)
+![](https://imgur.com/a/DEXrlgL)
 
 # 1-1. New→Ready
 ### Kernel::ExecAll()
