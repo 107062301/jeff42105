@@ -109,9 +109,11 @@ Bitmap::FindAndSet()
 ```
 4.在allocate的過程中可能會發生兩種情況:
 第一種情況若空間是連續的話，則會像是contiguous allocation的模式
+
 ![](https://i.imgur.com/HZQ1XYa.png)
 
 第二種情況若是free block的位置因為其他alloction而產生不連續的情況，則在FindAndSet()中會跳過被占用的block去分配其他free block，再Mark free block
+
 ![](https://i.imgur.com/HDyfdpT.png)
 
 綜合以上兩種情況，這樣的allocation模式就會是fileheader去指向data sector
