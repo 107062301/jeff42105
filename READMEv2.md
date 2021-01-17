@@ -217,7 +217,6 @@ FileSystem::RecursiveList(char* absolutePath)
 
     directory->FetchFrom(directoryFile);
     int sector;
-    // MP4I
 
     char* name = new char[256];
     strcpy(name, absolutePath);
@@ -316,8 +315,7 @@ FileSystem::Remove(char* absolutePath)
 
     directory = new Directory(NumDirEntries);
     directory->FetchFrom(directoryFile);
-
-    // MP4I
+    
     // Pharse path
     TraverseFile* info = new TraverseFile();
     info = traverseFind(name);
@@ -362,7 +360,6 @@ FileSystem::Remove(char* absolutePath)
 ```javascript=
 else if (strcmp(argv[i], "-l") == 0)
         {
-            // MP4 mod tag
             ASSERT(i + 1 < argc);
             listDirectoryName = argv[i + 1];
             dirListFlag = true;
@@ -373,7 +370,6 @@ else if (strcmp(argv[i], "-l") == 0)
 ```javascript=
 else if (strcmp(argv[i], "-lr") == 0)
         {
-            // MP4 mod tag
             // recursive list
             ASSERT(i + 1 < argc);
             listDirectoryName = argv[i + 1];
@@ -386,7 +382,6 @@ else if (strcmp(argv[i], "-lr") == 0)
 ```javascript=
 else if (strcmp(argv[i], "-mkdir") == 0)
         {
-            // MP4 mod tag
             ASSERT(i + 1 < argc);
             createDirectoryName = argv[i + 1];
             mkdirFlag = true;
@@ -415,7 +410,6 @@ if (removeFileName != NULL)
     }
     if (mkdirFlag)
     {
-        // MP4 mod tag
         CreateDirectory(createDirectoryName);
     }
     if (printFileName != NULL)
