@@ -176,117 +176,250 @@ if (directory->Find(lastPath) != -1)
     }
 ```
 ## FileSystem::Open
-
-4.freemap 中由1和0組成，若為1代表已被占用若為0代表為未使用，可以透過freeMap->FindAndSet()找到可用的free block
-# Q2
-在dish.h中定義了以下的資訊:sector size為128Bytes，每一個track有32個sector，而每一個disk又有32個track，所以NachOS上模擬出來的硬碟大小為硬碟的大小為128*32*32 = 131072 Bytes
+1.在FileSystem中，我們一樣先去做traverse的動作，根據獲得info的資訊後找到sector的位置，再根據該sector的位置打開檔案並用我們在class FileSystem上新增的一個指標 OpenFile* currentOpen來表示現在開啟的檔案是哪一個
 ```javascript=
-const int SectorSize = 128;     // number of bytes per disk sector
-onst int SectorsPerTrack = 32; // number of sectors per disk track
-const int NumTracks = 32;       // number of tracks per disk
-```
-```javascript=
-
-```
-# Q3
-1.  一開始在FileSystem::FileSystem先create new directory和它的header
-```javascript=
-Directory *directory = new Directory(NumDirEntries);
-FileHeader *dirHdr = new FileHeader;
-```
-2. 接下來將DirectorySector標記為已使用
-```javascript=
-freeMap->Mark(DirectorySector);
-```
-3. 將fileheader allocate在DirectorySector(1)上
-```javascript=
-ASSERT(dirHdr->Allocate(freeMap, DirectoryFileSize));
-dirHdr->WriteBack(DirectorySector);
-```
-4.class Directory中:
-* int tablesize: directory的entry數
-* DirectoryEntry *table: DirectoryEntry 的陣列 pointer
-
-5.而在class DirectoryEntry中:
-* bool inUse: entry是否被使用
-* int sector: disk裡sector的位置
-* char name[FileNameMaxLen + 1]: Directory 的名字
-
-# Q4
-1.NachOS中inode是實作在Class FileHeaderg上，其中存有以下資訊
-```javascript=
-private:
-    int numBytes;			// Number of bytes in the file
-    int numSectors;			// Number of data sectors in the file
-    int dataSectors[NumDirect];		// Disk sector numbers for each data 
-```
-2.以下為FileHeader::Allocate()，當創建檔案時會進入for迴圈執行BitMap::FindAndSet()進行allocation
-```javascript=
-bool
-FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
-{ 
-    numBytes = fileSize;
-    numSectors  = divRoundUp(fileSize, SectorSize);
-    if (freeMap->NumClear() < numSectors)
-	return FALSE;		// not enough space
-
-    for (int i = 0; i < numSectors; i++) {
-	    dataSectors[i] = freeMap->FindAndSet();
-	    // since we checked that there was enough free space,
-	    // we expect this to succeed
-	    ASSERT(dataSectors[i] >= 0);
-    }
-    return TRUE;
-}
-```
-3.而在FindAndSet()內部會執行for迴圈在freemap中尋找可用的block，一旦找到就return目前的numBits
-```javascript=
-int 
-Bitmap::FindAndSet() 
+OpenFile*
+FileSystem::Open(char* absolutePath)
 {
-    for (int i = 0; i < numBits; i++) {
-      if (!Test(i)) {
-          Mark(i);
-          return i;
-      }
-    }
-    return -1;
+    Directory* directory = new Directory(NumDirEntries);
+    int sector;
+    char* name = new char[256];
+    strcpy(name, absolutePath);
+
+    DEBUG(dbgFile, "Opening file" << name);
+   
+    directory->FetchFrom(directoryFile);
+    // Pharse path
+    TraverseFile* info = new TraverseFile();
+    info = traverseFind(name);
+    directory = info->directory;
+    char* lastPath = info->lastpath;
+    OpenFile* tmp_dir = info->tmp_dir;
+   
+    // file name is stored in lastPath
+    sector = directory->Find(lastPath);
+    if (sector >= 0)
+        currentOpen = new OpenFile(sector);
+    delete directory;
+    if (tmp_dir != NULL)
+        delete tmp_dir;
+    delete[] name;
+    return currentOpen;
 }
 ```
-4.在allocate的過程中可能會發生兩種情況:
-第一種情況若空間是連續的話，則會像是contiguous allocation的模式
-
-![](https://i.imgur.com/HZQ1XYa.png)
-
-第二種情況若是free block的位置因為其他alloction而產生不連續的情況，則在FindAndSet()中會跳過被占用的block去分配其他free block，再Mark free block
-
-![](https://i.imgur.com/HDyfdpT.png)
-
-綜合以上兩種情況，這樣的allocation模式就會是fileheader去指向data sector
-# Q5
-1.在filehdr.h中，dataSectors用來儲存file位於disk上的sector位置
+## FileSystem::RecursiveList and FileSystem::List
+1.在List或是RecursiveList的過程中，一樣也需要做path traverse，所以兩個函數在獲得info的資訊後會先確定該path存在，之後打開該path的directory，並呼叫Directory::RecursiveList(int layer)或是Directory::List()，以下只列出FileSystem::RecursiveList的code，FileSystem::List和它只差在path traverse完之後是呼叫Directory::RecursiveList(int layer)還是Directory::List()
 ```javascript=
-private:
-    int numBytes;			// Number of bytes in the file
-    int numSectors;			// Number of data sectors in the file
-    int dataSectors[NumDirect];		// Disk sector numbers for each data 
+void
+FileSystem::RecursiveList(char* absolutePath)
+{
+    Directory* directory = new Directory(NumDirEntries);
+
+    directory->FetchFrom(directoryFile);
+    int sector;
+    // MP4I
+
+    char* name = new char[256];
+    strcpy(name, absolutePath);
+    // Pharse path
+    TraverseFile* info = new TraverseFile();
+    info = traverseFind(name);
+    directory = info->directory;
+    char* lastPath = info->lastpath;
+    OpenFile* tmp_dir = info->tmp_dir;
+
+    if (lastPath != NULL && (sector = directory->Find(lastPath)) != -1) {// case of /t0  lastPath:t0 Path:NULL but directory point to root
+        if (tmp_dir != NULL) {
+            delete tmp_dir;
+            tmp_dir = NULL;
+        }
+        tmp_dir = new OpenFile(sector);
+        directory->FetchFrom(tmp_dir);
+    }
+
+    directory->RecursiveList(1);
+    if (tmp_dir != NULL)
+        delete tmp_dir;
+    delete[] name;
+    delete directory;
+}
 ```
-2.我們可以看到在FileHeader::Allocate()中因為SectorSize為128bytes，而所以numSectors被限制在SectorSize/sizeof(int) = 128/4 = 32，所以一個file擁有的dataSectors陣列最多為32個，所以最大總容量為32* 128bytes(sector size) = 4KB
+## Directory::RecursiveList and Directory::List
+1.在FileSystem中的FileSystem::RecursiveList / FileSystem::List會呼叫Directory::RecursiveList / Directory::List，首先以list來說，單純就是將現在的directory中所有元素都列出來，那我們根據該元素是否為directory在它們的名字前面加上一個前綴，[D]代表directory、[F]代表file
+```javascript=
+void
+Directory::List()
+{
+    cout << "List Directory:" << endl;
+    for (int i = 0; i < tableSize; i++) {
+        if (table[i].inUse) {
+            if (table[i].isdir) printf("[D]");
+            else printf("[F]");
+            printf("%s\n", table[i].name);
+        }
+    }
+}
+```
+2.而RecursiveList()就需要用地回的方式印出現在的directory含有的元素，我們印出一個directory中的所有元素，並且對每一個directory都去將它底下的subdirectory打開並對該subdirectory做RecursiveList()，如此便可列出所有的directory和file，而排版的部分，一開始在FileSystem::RecursiveList中呼叫directory->RecursiveList(1)代表這是列出第一層directory，而當地一層的directory要去呼叫第二層時則會呼叫subdir->RecursiveList(2)，依此類推，並且根據現在所處的layer來決定要印出幾個空格，這裡以char space[1021]來儲存要印出的空格數量
+```javascript=
+void
+Directory::RecursiveList(int layer) // modify
+{
+    char ch;
+    char space[1021];
+    if (layer == 1){
+        cout << "Recursive List Directory:" << endl;
+        space[0] = '\0';
+    }
+    else {
+        for (int j = 0; j <= 4*(layer - 1)-1; j++) {
+            space[j] = ' ';
+        }
+        space[4 * (layer - 1)] = '\0';
+    }
+    for (int i = 0; i < tableSize; i++) {
+        if (table[i].inUse) {
+            
+            if (table[i].isdir) {
+                ch = 'D';
+                printf("%s[%c]: %s\n",space, ch, table[i].name);
+            }
+            else {
+                ch = 'F';
+                printf("%s[%c]: %s\n",space, ch, table[i].name);
+            }
+            
+            if (table[i].isdir) {
+                OpenFile* subdirfile = new OpenFile(table[i].sector);
+                Directory* subdir = new Directory(NumDirEntries);
+                subdir->FetchFrom(subdirfile);
+                subdir->RecursiveList(layer+1);
+                delete subdirfile;
+                delete subdir;
+            }
+        }
+    }
+}
+```
+## FileSystem::Remove
+1.在remove之前也事先traverse path，然後呼叫fileHdr->Deallocate(freeMap)來free data block，呼叫freeMap->Clear(sector)來移除header block，之後再將freemap writeback回disk上
 ```javascript=
 bool
-FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
-{ 
-    numBytes = fileSize;
-    numSectors  = divRoundUp(fileSize, SectorSize);
-    if (freeMap->NumClear() < numSectors)
-	return FALSE;		// not enough space
+FileSystem::Remove(char* absolutePath)
+{
+    Directory* directory;
+    PersistentBitmap* freeMap;
+    FileHeader* fileHdr;
+    int sector;
+    char* name = new char[256];
+    strcpy(name, absolutePath);
 
-    for (int i = 0; i < numSectors; i++) {
-	    dataSectors[i] = freeMap->FindAndSet();
-	    // since we checked that there was enough free space,
-	    // we expect this to succeed
-	    ASSERT(dataSectors[i] >= 0);
+    directory = new Directory(NumDirEntries);
+    directory->FetchFrom(directoryFile);
+
+    // MP4I
+    // Pharse path
+    TraverseFile* info = new TraverseFile();
+    info = traverseFind(name);
+    directory = info->directory;
+    char* lastPath = info->lastpath;
+    OpenFile* tmp_dir = info->tmp_dir;
+
+    // remove
+    sector = directory->Find(lastPath);
+    if (sector == -1) {
+        delete directory;
+        return FALSE;			 // file not found 
     }
+    fileHdr = new FileHeader;
+    fileHdr->FetchFrom(sector);
+
+    freeMap = new PersistentBitmap(freeMapFile, NumSectors);
+
+    fileHdr->Deallocate(freeMap);  		// remove data blocks
+    freeMap->Clear(sector);			// remove header block
+    directory->Remove(lastPath);
+
+    freeMap->WriteBack(freeMapFile);		// flush to disk
+    if (tmp_dir != NULL) {
+        directory->WriteBack(tmp_dir); // flush to disk
+        delete tmp_dir;
+    }
+    else {
+        directory->WriteBack(directoryFile); // flush to disk
+    }
+    delete fileHdr;
+    delete directory;
+    delete freeMap;
+    delete[] name;
     return TRUE;
 }
+```
+## Support up to 64 files/subdirectories per directory
+我們將 directory.cc/.h 和 filesys.cc/.h 的NumDirEntries由10改成64即可
+## main.cc
+1.main.cc為控制指令輸入的地方，所以我們在這裡做一些修改，我們用listDirectoryName來儲存輸入進list和recursive list的path的指標，當指令為-l時recursiveListFlag = false
+```javascript=
+else if (strcmp(argv[i], "-l") == 0)
+        {
+            // MP4 mod tag
+            ASSERT(i + 1 < argc);
+            listDirectoryName = argv[i + 1];
+            dirListFlag = true;
+            i++;
+        }
+```
+2.當指令為-lr時recursiveListFlag = true
+```javascript=
+else if (strcmp(argv[i], "-lr") == 0)
+        {
+            // MP4 mod tag
+            // recursive list
+            ASSERT(i + 1 < argc);
+            listDirectoryName = argv[i + 1];
+            dirListFlag = true;
+            recursiveListFlag = true;
+            i++;
+        }
+```
+3.我們用createDirectoryName來儲存輸入進CreateDir()的path的指標，當指令為-mkdir時mkdirFlag = true
+```javascript=
+else if (strcmp(argv[i], "-mkdir") == 0)
+        {
+            // MP4 mod tag
+            ASSERT(i + 1 < argc);
+            createDirectoryName = argv[i + 1];
+            mkdirFlag = true;
+            i++;
+        }
+```
+4.我們用剛剛的mkdirFlag、recursiveListFlag和其他原本就有的變數來判斷要執行fileSystem的哪個function
+```javascript=
+if (removeFileName != NULL)
+    {
+        kernel->fileSystem->Remove(removeFileName);
+    }
+    if (copyUnixFileName != NULL && copyNachosFileName != NULL)
+    {
+        Copy(copyUnixFileName, copyNachosFileName);
+    }
+    if (dumpFlag)
+    {
+        kernel->fileSystem->Print();
+    }
+    if (dirListFlag)
+    {
+        if(recursiveListFlag) kernel->fileSystem->RecursiveList(listDirectoryName);
+        else kernel->fileSystem->List(listDirectoryName);
+        
+    }
+    if (mkdirFlag)
+    {
+        // MP4 mod tag
+        CreateDirectory(createDirectoryName);
+    }
+    if (printFileName != NULL)
+    {
+        Print(printFileName);
+    }
 ```
